@@ -1,16 +1,17 @@
 // ==========================
-// CONFIGURACIÓN SUPABASE
+// CONFIGURACIÓN SUPABASE (opcional)
 // ==========================
 
-// TODO: Reemplaza con tus datos reales de Supabase
+// Si aún no tienes URL y KEY, deja estos valores tal cual.
+// Cuando los pongas bien, el sistema intentará leer de Supabase.
+// Si falla, usa los datos mock como respaldo.
+
 const SUPABASE_URL = "https://ejpuxfhohdcabghznqod.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqcHV4ZmhvaGRjYWJnaHpucW9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMjExODYsImV4cCI6MjA3ODg5NzE4Nn0.Hql_Y0wTTcV8u84MWt0IXwLZUzpgnkjwJp3acfwHw9M";
 
-// Inicializa supabase si configuraste las variables
 let supabaseClient = null;
-if (SUPABASE_URL.startsWith("https://TU-")) {
-  console.warn("Configura SUPABASE_URL y SUPABASE_ANON_KEY en app.js");
-} else {
+if (!SUPABASE_URL.startsWith("https://TU-")) {
+  // Solo crea el cliente si configuraste la URL real
   supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
@@ -18,10 +19,10 @@ if (SUPABASE_URL.startsWith("https://TU-")) {
 }
 
 // ==========================
-// DATOS MOCK (ejemplo)
+// DATOS MOCK (si no hay Supabase)
 // ==========================
 
-const mockOTs = [
+let currentOTs = [
   {
     id: 1,
     ot: "OT-2025-001",
@@ -87,11 +88,11 @@ const mockOTs = [
   },
 ];
 
-const mockAlerts = [
+let currentAlerts = [
   {
     ot: "OT-2025-002",
     type: "Torque",
-    detail: "Punto 'Módulo inversor - Soporte lateral' fuera de rango.",
+    detail: 'Punto "Módulo inversor - Soporte lateral" fuera de rango.',
     date: "16-11-2025 09:12",
     state: "Pendiente",
   },
@@ -129,7 +130,7 @@ navLinks.forEach((btn) => {
 });
 
 // ==========================
-// DASHBOARD: KPIs + TABLA
+// ELEMENTOS DEL DASHBOARD
 // ==========================
 
 const kpiCertToday = document.getElementById("kpi-cert-today");
@@ -143,7 +144,6 @@ const recentActivityBody = document.getElementById("recent-activity-body");
 // Detalle
 const detailPlaceholder = document.getElementById("detail-placeholder");
 const detailContent = document.getElementById("detail-content");
-
 const detailOtLabel = document.getElementById("detail-ot-label");
 const detailOt = document.getElementById("detail-ot");
 const detailVehicle = document.getElementById("detail-vehicle");
@@ -154,21 +154,24 @@ const detailEvList = document.getElementById("detail-ev-list");
 const btnDownloadPdf = document.getElementById("btn-download-pdf");
 const btnOpenWhatsapp = document.getElementById("btn-open-whatsapp");
 
-// global WhatsApp button (sidebar)
+// Sidebar WhatsApp
 const globalWhatsappBtn = document.getElementById("global-whatsapp-btn");
 
-// Carga inicial con datos mock
-function loadDashboardMock() {
-  const totalCert = mockOTs.length;
-  kpiCertToday.textContent = totalCert;
-  kpiCertCaption.textContent = "Certificaciones registradas con datos de ejemplo.";
+// ==========================
+// CARGA DE DASHBOARD
+// ==========================
 
-  // porcentaje conforme vs alerta
+function renderDashboardFromData(ots) {
+  const totalCert = ots.length;
+  kpiCertToday.textContent = totalCert;
+  kpiCertCaption.textContent =
+    "Certificaciones registradas (datos mock o Supabase).";
+
   let totalPoints = 0;
   let conformes = 0;
   let evCompleted = 0;
 
-  mockOTs.forEach((ot) => {
+  ots.forEach((ot) => {
     ot.torquePoints.forEach((p) => {
       totalPoints++;
       if (p.status === "Conforme") conformes++;
@@ -180,16 +183,15 @@ function loadDashboardMock() {
     }
   });
 
-  const pctConforme = totalPoints ? Math.round((conformes / totalPoints) * 100) : 0;
+  const pctConforme = totalPoints
+    ? Math.round((conformes / totalPoints) * 100)
+    : 0;
   kpiConforme.textContent = pctConforme + "%";
   kpiEvCompleted.textContent = evCompleted.toString();
 
-  // alertas
-  kpiAlertsActive.textContent = mockAlerts.length.toString();
-
-  // tabla de actividad reciente
+  // Tabla
   recentActivityBody.innerHTML = "";
-  mockOTs.forEach((ot) => {
+  ots.forEach((ot) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${ot.ot}</td>
@@ -204,28 +206,11 @@ function loadDashboardMock() {
   });
 }
 
-// VERSION FUTURA: Cargar datos reales desde Supabase
-async function loadDashboardFromSupabase() {
-  if (!supabaseClient) return;
-
-  try {
-    // EJEMPLO DE CONSULTA (ajusta a tu schema):
-    // const { data, error } = await supabaseClient
-    //   .from("certifications")
-    //   .select("*")
-    //   .order("created_at", { ascending: false })
-    //   .limit(20);
-    //
-    // if (error) throw error;
-    //
-    // Mapear data a formato similar a mockOTs y reemplazar.
-
-    // Por ahora usamos mock:
-    loadDashboardMock();
-  } catch (err) {
-    console.error("Error cargando dashboard:", err);
-    loadDashboardMock();
-  }
+// Si quisieras usar Supabase más adelante, aquí pones las queries.
+// Por ahora: siempre usamos los datos mock para que funcione.
+async function loadDashboard() {
+  // Futuro: si configuras supabaseClient, podrías leer de la BD aquí.
+  renderDashboardFromData(currentOTs);
 }
 
 function showDetail(ot) {
@@ -242,9 +227,9 @@ function showDetail(ot) {
     const li = document.createElement("li");
     const isAlert = p.status !== "Conforme";
     li.innerHTML = `
-      <strong>${p.name}</strong>  
-      <br />Rango: ${p.targetRange} | Aplicado: ${p.applied}
-      <br /><span style="color:${isAlert ? "#e53935" : "#16a34a"};font-weight:600;">
+      <strong>${p.name}</strong><br/>
+      Rango: ${p.targetRange} | Aplicado: ${p.applied}<br/>
+      <span style="color:${isAlert ? "#e53935" : "#16a34a"};font-weight:600;">
         ${p.status}
       </span>
     `;
@@ -256,22 +241,20 @@ function showDetail(ot) {
     const li = document.createElement("li");
     const isAlert = e.status !== "Conforme";
     li.innerHTML = `
-      <strong>${e.name}</strong>: ${e.value}
-      <br /><span style="color:${isAlert ? "#e53935" : "#16a34a"};font-weight:600;">
+      <strong>${e.name}</strong>: ${e.value}<br/>
+      <span style="color:${isAlert ? "#e53935" : "#16a34a"};font-weight:600;">
         ${e.status}
       </span>
     `;
     detailEvList.appendChild(li);
   });
 
-  // Botón PDF: aquí solo simulamos
   btnDownloadPdf.onclick = () => {
     alert(
-      "Aquí deberías abrir/descargar el PDF del chatbot. Por ahora es una simulación."
+      "Aquí deberías abrir/descargar el PDF real que genera tu bot de WhatsApp. (Simulación)."
     );
   };
 
-  // Botón WhatsApp
   btnOpenWhatsapp.onclick = () => {
     openWhatsappForOT(ot);
   };
@@ -283,9 +266,9 @@ function showDetail(ot) {
 
 const alertsBody = document.getElementById("alerts-body");
 
-function loadAlertsMock() {
+function renderAlerts(alerts) {
   alertsBody.innerHTML = "";
-  mockAlerts.forEach((a) => {
+  alerts.forEach((a) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${a.ot}</td>
@@ -296,32 +279,17 @@ function loadAlertsMock() {
     `;
     alertsBody.appendChild(tr);
   });
+
+  kpiAlertsActive.textContent = alerts.length.toString();
 }
 
-// VERSION FUTURA: Cargar alertas desde Supabase
-async function loadAlertsFromSupabase() {
-  if (!supabaseClient) {
-    loadAlertsMock();
-    return;
-  }
-
-  try {
-    // const { data, error } = await supabaseClient
-    //   .from("alerts")
-    //   .select("*")
-    //   .order("created_at", { ascending: false });
-    // if (error) throw error;
-    //
-    // Mapear data -> mockAlerts-like
-    loadAlertsMock();
-  } catch (err) {
-    console.error("Error cargando alertas:", err);
-    loadAlertsMock();
-  }
+async function loadAlerts() {
+  // Futuro Supabase aquí
+  renderAlerts(currentAlerts);
 }
 
 // ==========================
-// PORTAL DE VERIFICACIÓN
+// VERIFICACIÓN DE CERTIFICADO
 // ==========================
 
 const verificationCodeInput = document.getElementById("verification-code");
@@ -335,61 +303,37 @@ const verificationVehicle = document.getElementById("verification-vehicle");
 const verificationWorkshop = document.getElementById("verification-workshop");
 const verificationDate = document.getElementById("verification-date");
 
-btnVerify.addEventListener("click", async () => {
+btnVerify.addEventListener("click", () => {
   const code = verificationCodeInput.value.trim();
   if (!code) {
     alert("Por favor, ingresa un código de certificado.");
     return;
   }
 
-  // Primero probamos con mock
-  const foundMock = mockOTs.find((ot) => ot.certificateCode === code);
-  if (foundMock) {
-    showVerificationResult(foundMock);
+  const found = currentOTs.find((ot) => ot.certificateCode === code);
+  if (!found) {
+    alert("No se encontró un certificado con ese código (demo).");
     return;
   }
 
-  // FUTURO: búsqueda real en Supabase
-  if (supabaseClient) {
-    try {
-      // const { data, error } = await supabaseClient
-      //   .from("certificates")
-      //   .select("*")
-      //   .eq("code", code)
-      //   .single();
-      // if (error) throw error;
-      //
-      // Mapear data a formato de foundMock y llamar showVerificationResult(...)
-      alert("Simulación: Supabase aún no configurado para verificar.");
-    } catch (err) {
-      console.error("Error verificando certificado:", err);
-      alert("No se encontró el certificado o hubo un error.");
-    }
-  } else {
-    alert("Código no encontrado en los datos de ejemplo.");
-  }
-});
-
-function showVerificationResult(ot) {
   verificationEmpty.classList.add("hidden");
   verificationResult.classList.remove("hidden");
 
-  // Estado simplificado
   let statusText = "Conforme (EV y torque)";
-  if (ot.status === "Con observaciones") statusText = "Con observaciones";
+  if (found.status === "Con observaciones") statusText = "Con observaciones";
 
   verificationStatus.textContent = statusText;
-  verificationOt.textContent = ot.ot;
-  verificationVehicle.textContent = ot.vehicle;
-  verificationWorkshop.textContent = ot.workshop || "Taller STC-EV";
-  verificationDate.textContent = ot.date;
-}
+  verificationOt.textContent = found.ot;
+  verificationVehicle.textContent = found.vehicle;
+  verificationWorkshop.textContent = found.workshop || "Taller STC-EV";
+  verificationDate.textContent = found.date;
+});
 
 // ==========================
-// WHATSAPP INTEGRACIÓN
+// WHATSAPP
 // ==========================
 
-const DEFAULT_WSP_PHONE = "56912345678"; // TODO: reemplaza con el número real del bot
+const DEFAULT_WSP_PHONE = "56912345678"; // Cambia por el número real de tu bot
 
 function buildWhatsappUrl(message, phoneOverride) {
   const phone = phoneOverride || DEFAULT_WSP_PHONE;
@@ -403,7 +347,7 @@ function openWhatsappForOT(ot) {
   window.open(url, "_blank");
 }
 
-// botón global (sidebar)
+// Botón global sidebar
 if (globalWhatsappBtn) {
   const message =
     "Iniciar flujo STC-EV para nueva certificación de torque y chequeo EV.";
@@ -415,8 +359,8 @@ if (globalWhatsappBtn) {
 // ==========================
 
 function init() {
-  loadDashboardFromSupabase();
-  loadAlertsFromSupabase();
+  loadDashboard();
+  loadAlerts();
 }
 
 document.addEventListener("DOMContentLoaded", init);
