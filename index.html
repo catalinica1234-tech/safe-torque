@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>STC-EV Control Center</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Supabase JS (UMD) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">STC</div>
+        <div class="brand-text">
+          <span class="brand-title">STC-EV</span>
+          <span class="brand-subtitle">Control Center</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-link active" data-section="dashboard">
+          Dashboard
+        </button>
+        <button class="nav-link" data-section="alerts">
+          Alertas
+        </button>
+        <button class="nav-link" data-section="verification">
+          Verificación de Certificado
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p class="sidebar-note">
+          Mecánicos trabajan por WhatsApp.  
+          Este panel es solo para supervisión y verificación.
+        </p>
+        <a
+          class="whatsapp-button"
+          id="global-whatsapp-btn"
+          target="_blank"
+          rel="noopener"
+        >
+          Iniciar flujo en WhatsApp
+        </a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+      <!-- HEADER SUPERIOR -->
+      <header class="main-header">
+        <div>
+          <h1>Panel de Supervisión</h1>
+          <p class="subtitle">
+            Trazabilidad de torque y seguridad EV en tiempo real.
+          </p>
+        </div>
+        <div class="user-badge">
+          <div class="user-avatar">S</div>
+          <div class="user-info">
+            <span class="user-name">Supervisor Taller</span>
+            <span class="user-role">Administrador</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- SECCIÓN: DASHBOARD -->
+      <section id="dashboard" class="section visible">
+        <div class="grid-cards">
+          <div class="card kpi-card">
+            <span class="kpi-label">Certificaciones hoy</span>
+            <span class="kpi-value" id="kpi-cert-today">0</span>
+            <span class="kpi-caption" id="kpi-cert-caption">
+              Cargando...
+            </span>
+          </div>
+
+          <div class="card kpi-card">
+            <span class="kpi-label">Puntos Conformes</span>
+            <span class="kpi-value" id="kpi-conforme">0%</span>
+            <span class="kpi-caption">
+              Sobre el total de puntos críticos registrados.
+            </span>
+          </div>
+
+          <div class="card kpi-card">
+            <span class="kpi-label">Alertas Críticas Activas</span>
+            <span class="kpi-value alert" id="kpi-alerts-active">0</span>
+            <span class="kpi-caption">
+              Requieren revisión del supervisor.
+            </span>
+          </div>
+
+          <div class="card kpi-card">
+            <span class="kpi-label">Chequeos EV Completos</span>
+            <span class="kpi-value" id="kpi-ev-completed">0</span>
+            <span class="kpi-caption">
+              Certificaciones con módulo EV crítico cerrado.
+            </span>
+          </div>
+        </div>
+
+        <div class="grid-main">
+          <!-- Tabla de actividad reciente -->
+          <div class="card">
+            <div class="card-header">
+              <h2>Actividad reciente</h2>
+              <span class="pill">Últimas OT certificadas</span>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>OT</th>
+                    <th>Vehículo</th>
+                    <th>Mecánico</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-activity-body">
+                  <!-- Filas dinámicas desde JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Detalle seleccionado -->
+          <div class="card">
+            <div class="card-header">
+              <h2>Detalle de certificación</h2>
+              <span class="pill pill-secondary" id="detail-ot-label">
+                Selecciona una OT
+              </span>
+            </div>
+
+            <div id="detail-placeholder">
+              <p>
+                Selecciona una OT en la tabla de actividad reciente para ver
+                el detalle de torque y chequeo EV.
+              </p>
+            </div>
+
+            <div id="detail-content" class="detail hidden">
+              <div class="detail-section">
+                <h3>Datos generales</h3>
+                <p><strong>OT:</strong> <span id="detail-ot"></span></p>
+                <p><strong>Vehículo:</strong> <span id="detail-vehicle"></span></p>
+                <p><strong>Mecánico:</strong> <span id="detail-mechanic"></span></p>
+                <p><strong>Estado global:</strong> <span id="detail-status"></span></p>
+              </div>
+
+              <div class="detail-section">
+                <h3>Torque crítico</h3>
+                <ul id="detail-torque-list" class="detail-list">
+                  <!-- Items dinámicos -->
+                </ul>
+              </div>
+
+              <div class="detail-section">
+                <h3>Chequeo EV</h3>
+                <ul id="detail-ev-list" class="detail-list">
+                  <!-- Items dinámicos -->
+                </ul>
+              </div>
+
+              <div class="detail-actions">
+                <button id="btn-download-pdf" class="btn-primary">
+                  Descargar certificado PDF
+                </button>
+                <button id="btn-open-whatsapp" class="btn-outline">
+                  Reabrir en WhatsApp
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECCIÓN: ALERTAS -->
+      <section id="alerts" class="section">
+        <div class="card">
+          <div class="card-header">
+            <h2>Alertas críticas</h2>
+            <span class="pill">Torque y EV fuera de rango</span>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>OT</th>
+                  <th>Tipo</th>
+                  <th>Detalle</th>
+                  <th>Fecha</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="alerts-body">
+                <!-- Filas dinámicas -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECCIÓN: VERIFICACIÓN -->
+      <section id="verification" class="section">
+        <div class="card">
+          <div class="card-header">
+            <h2>Verificación de Certificado</h2>
+            <span class="pill">Portal público</span>
+          </div>
+
+          <div class="verification-form">
+            <label for="verification-code">Código o ID de certificado</label>
+            <div class="verification-input-row">
+              <input
+                type="text"
+                id="verification-code"
+                placeholder="Ej: STC-2025-000123"
+              />
+              <button id="btn-verify" class="btn-primary">
+                Verificar
+              </button>
+            </div>
+            <p class="help-text">
+              Este código se encuentra en el PDF o en el QR del certificado
+              entregado al cliente / aseguradora.
+            </p>
+          </div>
+
+          <div id="verification-result" class="verification-result hidden">
+            <h3>Resultado de verificación</h3>
+            <p><strong>Estado:</strong> <span id="verification-status"></span></p>
+            <p><strong>OT:</strong> <span id="verification-ot"></span></p>
+            <p><strong>Vehículo:</strong> <span id="verification-vehicle"></span></p>
+            <p><strong>Taller:</strong> <span id="verification-workshop"></span></p>
+            <p><strong>Fecha certificación:</strong> <span id="verification-date"></span></p>
+          </div>
+
+          <div id="verification-empty" class="verification-empty">
+            <p>
+              Ingresa un código válido para comprobar el estado de la
+              certificación y los datos del vehículo.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Lógica JS -->
+  <script src="app.js"></script>
+</body>
+</html>
